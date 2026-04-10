@@ -20,7 +20,7 @@ class MACDStrategy(BaseStrategy):
         )
         data['macd'] = macd_indicator.macd()
         data['macd_signal'] = macd_indicator.macd_signal()
-        data.dropna(inplace=True)
+        data = data.dropna()
         if len(data) < 2:
             return 'HOLD'
         last = data.iloc[-1]

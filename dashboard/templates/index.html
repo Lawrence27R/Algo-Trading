@@ -532,8 +532,8 @@
   function exportPeriodCsv() {
     const period = document.getElementById('period-select').value;
     if (period === 'daily') window.location = '/api/export/daily_csv';
-    else if (period === 'monthly') window.location = '/api/export/monthly_csv';
-    else window.location = '/api/export/trades_csv';
+    else if (period === 'weekly') window.location = '/api/export/weekly_csv';
+    else window.location = '/api/export/monthly_csv';
   }
 
   function renderPerTradeTable(data) {

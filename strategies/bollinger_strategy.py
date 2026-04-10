@@ -15,7 +15,7 @@ class BollingerBandsStrategy(BaseStrategy):
         data['bb_high'] = bb.bollinger_hband()
         data['bb_low'] = bb.bollinger_lband()
         data['bb_mid'] = bb.bollinger_mavg()
-        data.dropna(inplace=True)
+        data = data.dropna()
         if len(data) < 1:
             return 'HOLD'
         last = data.iloc[-1]

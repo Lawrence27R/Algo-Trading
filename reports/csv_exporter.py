@@ -32,6 +32,18 @@ def export_daily_csv():
     return output.getvalue()
 
 
+def export_weekly_csv():
+    data = get_weekly_report()
+    output = io.StringIO()
+    if not data:
+        return output.getvalue()
+    fieldnames = ["week", "trades", "gross_pnl", "total_charges", "net_pnl", "wins", "losses"]
+    writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction='ignore')
+    writer.writeheader()
+    writer.writerows(data)
+    return output.getvalue()
+
+
 def export_monthly_csv():
     data = get_monthly_report()
     output = io.StringIO()

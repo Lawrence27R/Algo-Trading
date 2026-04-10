@@ -132,6 +132,17 @@ def export_daily_csv():
     )
 
 
+@app.route("/api/export/weekly_csv")
+def export_weekly_csv():
+    from reports.csv_exporter import export_weekly_csv as _export
+    csv_data = _export()
+    return Response(
+        csv_data,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=weekly_report.csv"}
+    )
+
+
 @app.route("/api/export/monthly_csv")
 def export_monthly_csv():
     from reports.csv_exporter import export_monthly_csv as _export
@@ -155,9 +166,12 @@ def api_risk_status():
 @app.route("/api/risk/check")
 def api_risk_check():
     from risk.risk_manager import RiskManager
-    symbol = request.args.get("symbol", "")
-    quantity = int(request.args.get("quantity", 0))
-    price = float(request.args.get("price", 0))
+    try:
+        symbol = request.args.get("symbol", "")
+        quantity = int(request.args.get("quantity", 0))
+        price = float(request.args.get("price", 0))
+    except (ValueError, TypeError):
+        return jsonify({"allowed": False, "message": "Invalid quantity or price — must be numeric"}), 400
     rm = RiskManager()
     allowed, message = rm.can_trade(symbol, quantity, price)
     return jsonify({"allowed": allowed, "message": message})

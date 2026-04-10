@@ -256,7 +256,7 @@ def get_summary_stats(trades=None):
         "worst_trade": round(min(pnls), 2) if pnls else 0,
         "max_drawdown": round(max_drawdown, 2),
         "sharpe_ratio": round(sharpe, 2),
-        "profit_factor": round(sum(wins) / abs(sum(losses)), 2) if losses and sum(losses) != 0 else 0,
+        "profit_factor": round(sum(wins) / abs(sum(losses)), 2) if losses and sum(losses) != 0 else (float('inf') if wins else 0),
         "avg_charges_per_trade": round(total_charges / len(per_trade), 2) if per_trade else 0,
     }
 

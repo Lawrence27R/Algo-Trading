@@ -24,7 +24,7 @@ class RiskManager:
         from reports.report_engine import get_per_trade_report
         today = datetime.date.today().isoformat()
         all_trades = get_per_trade_report()
-        daily_trades = [t for t in all_trades if t.get("sell_time", "").startswith(today)]
+        daily_trades = [t for t in all_trades if (t.get("sell_time") or "").startswith(today)]
         return sum(t["net_pnl"] for t in daily_trades)
 
     def can_trade(self, symbol, quantity, price):
