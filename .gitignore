@@ -32,3 +32,7 @@ data/logs/*.json
 # OS
 .DS_Store
 Thumbs.db
+
+# ML saved models (generated at runtime — keep only .gitkeep)
+ml/saved_models/*.pkl
+ml/saved_models/*.json
