@@ -177,6 +177,141 @@ def api_risk_check():
     return jsonify({"allowed": allowed, "message": message})
 
 
+# ── ML routes ─────────────────────────────────────────────────────────────────
+
+@app.route("/ml/train", methods=["POST"])
+def ml_train():
+    """Train a RandomForest or XGBoost model for the given symbol."""
+    try:
+        from ml.data_loader import DataLoader
+        from ml.model_trainer import ModelTrainer
+
+        body = request.get_json(force=True) or {}
+        symbol = body.get("symbol", "").upper().strip()
+        model_type = body.get("model_type", "random_forest")
+        period = body.get("period", "2y")
+
+        if not symbol:
+            return jsonify({"error": "symbol is required"}), 400
+
+        try:
+            df = DataLoader.fetch_yfinance(symbol, period=period)
+        except Exception:
+            df = DataLoader.get_sample_data(symbol)
+
+        trainer = ModelTrainer(symbol=symbol, model_type=model_type)
+        metrics = trainer.train(df)
+        return jsonify(metrics)
+    except ValueError as exc:
+        return jsonify({"error": exc.args[0] if exc.args else "Invalid input"}), 400
+    except Exception:
+        return jsonify({"error": "Model training failed. Check symbol and model type."}), 500
+
+
+@app.route("/ml/backtest", methods=["POST"])
+def ml_backtest():
+    """Run a walk-forward ML backtest for the given symbol."""
+    try:
+        from ml.data_loader import DataLoader
+        from ml.backtester import MLBacktester
+
+        body = request.get_json(force=True) or {}
+        symbol = body.get("symbol", "").upper().strip()
+        model_type = body.get("model_type", "random_forest")
+        period = body.get("period", "2y")
+        initial_cash = float(body.get("initial_cash", 100_000))
+
+        if not symbol:
+            return jsonify({"error": "symbol is required"}), 400
+
+        try:
+            df = DataLoader.fetch_yfinance(symbol, period=period)
+        except Exception:
+            df = DataLoader.get_sample_data(symbol)
+
+        backtester = MLBacktester()
+        result = backtester.run(df, symbol=symbol, initial_cash=initial_cash,
+                                model_type=model_type)
+        return jsonify(result)
+    except ValueError as exc:
+        return jsonify({"error": exc.args[0] if exc.args else "Invalid input"}), 400
+    except Exception:
+        return jsonify({"error": "Backtest failed. Check symbol and model type."}), 500
+
+
+@app.route("/ml/predict", methods=["POST"])
+def ml_predict():
+    """Return a BUY/SELL/HOLD signal for the latest data of a symbol."""
+    try:
+        from ml.data_loader import DataLoader
+        from ml.predictor import MLPredictor
+
+        body = request.get_json(force=True) or {}
+        symbol = body.get("symbol", "").upper().strip()
+        model_type = body.get("model_type", "random_forest")
+
+        if not symbol:
+            return jsonify({"error": "symbol is required"}), 400
+
+        try:
+            df = DataLoader.fetch_yfinance(symbol, period="1y")
+        except Exception:
+            df = DataLoader.get_sample_data(symbol)
+
+        predictor = MLPredictor()
+        result = predictor.predict(df, symbol=symbol, model_type=model_type)
+        return jsonify(result)
+    except ValueError as exc:
+        return jsonify({"error": exc.args[0] if exc.args else "Invalid input"}), 400
+    except FileNotFoundError:
+        return jsonify({"error": "No trained model found for this symbol. Train first."}), 404
+    except Exception:
+        return jsonify({"error": "Prediction failed. Ensure the model is trained first."}), 500
+
+
+@app.route("/ml/models", methods=["GET"])
+def ml_models():
+    """List all saved ML models with their stored metrics."""
+    try:
+        import json
+        import glob
+
+        models_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "ml", "saved_models"
+        )
+        os.makedirs(models_dir, exist_ok=True)
+        pattern = os.path.join(models_dir, "*_metrics.json")
+        result = []
+        for path in sorted(glob.glob(pattern)):
+            try:
+                with open(path) as fh:
+                    metrics = json.load(fh)
+                result.append(metrics)
+            except Exception:
+                continue
+        return jsonify(result)
+    except Exception:
+        return jsonify({"error": "Failed to list saved models."}), 500
+
+
+@app.route("/ml/feature-importance/<symbol>/<model_type>", methods=["GET"])
+def ml_feature_importance(symbol, model_type):
+    """Return feature importance scores for a saved model."""
+    try:
+        from ml.model_trainer import ModelTrainer
+
+        trainer = ModelTrainer(symbol=symbol.upper(), model_type=model_type)
+        importance = trainer.get_feature_importance()
+        return jsonify(importance)
+    except ValueError as exc:
+        return jsonify({"error": exc.args[0] if exc.args else "Invalid input"}), 400
+    except FileNotFoundError:
+        return jsonify({"error": "No trained model found for this symbol."}), 404
+    except Exception:
+        return jsonify({"error": "Failed to retrieve feature importance."}), 500
+
+
 # ── WebSocket ─────────────────────────────────────────────────────────────────
 
 @socketio.on("connect")
