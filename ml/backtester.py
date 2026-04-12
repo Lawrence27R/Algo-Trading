@@ -22,6 +22,9 @@ from ml.model_trainer import ModelTrainer
 class MLBacktester:
     """Walk-forward ML backtester."""
 
+    #: Fraction of available cash to deploy per BUY signal.
+    POSITION_SIZE_FRACTION: float = 0.95
+
     def __init__(self, train_window: int = 252, test_window: int = 63):
         """
         Parameters
@@ -116,7 +119,7 @@ class MLBacktester:
 
                 if signal == 1 and position == 0:
                     # BUY
-                    qty = max(1, int(cash * 0.95 // price))
+                    qty = max(1, int(cash * self.POSITION_SIZE_FRACTION // price))
                     if qty > 0 and cash >= qty * price:
                         position = qty
                         entry_price = price

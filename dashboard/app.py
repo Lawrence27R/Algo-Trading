@@ -202,8 +202,10 @@ def ml_train():
         trainer = ModelTrainer(symbol=symbol, model_type=model_type)
         metrics = trainer.train(df)
         return jsonify(metrics)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except (ValueError, TypeError) as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception:
+        return jsonify({"error": "Model training failed. Check symbol and model type."}), 500
 
 
 @app.route("/ml/backtest", methods=["POST"])
@@ -231,8 +233,10 @@ def ml_backtest():
         result = backtester.run(df, symbol=symbol, initial_cash=initial_cash,
                                 model_type=model_type)
         return jsonify(result)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except (ValueError, TypeError) as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception:
+        return jsonify({"error": "Backtest failed. Check symbol and model type."}), 500
 
 
 @app.route("/ml/predict", methods=["POST"])
@@ -257,10 +261,12 @@ def ml_predict():
         predictor = MLPredictor()
         result = predictor.predict(df, symbol=symbol, model_type=model_type)
         return jsonify(result)
+    except (ValueError, TypeError) as exc:
+        return jsonify({"error": str(exc)}), 400
     except FileNotFoundError as exc:
         return jsonify({"error": str(exc)}), 404
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        return jsonify({"error": "Prediction failed. Ensure the model is trained first."}), 500
 
 
 @app.route("/ml/models", methods=["GET"])
@@ -285,8 +291,8 @@ def ml_models():
             except Exception:
                 continue
         return jsonify(result)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        return jsonify({"error": "Failed to list saved models."}), 500
 
 
 @app.route("/ml/feature-importance/<symbol>/<model_type>", methods=["GET"])
@@ -298,10 +304,12 @@ def ml_feature_importance(symbol, model_type):
         trainer = ModelTrainer(symbol=symbol.upper(), model_type=model_type)
         importance = trainer.get_feature_importance()
         return jsonify(importance)
+    except (ValueError, TypeError) as exc:
+        return jsonify({"error": str(exc)}), 400
     except FileNotFoundError as exc:
         return jsonify({"error": str(exc)}), 404
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        return jsonify({"error": "Failed to retrieve feature importance."}), 500
 
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────

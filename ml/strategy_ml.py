@@ -5,10 +5,13 @@ Extends BaseStrategy to generate BUY / SELL / HOLD signals using
 a pre-trained MLPredictor model.
 """
 
+import logging
 import pandas as pd
 
 from strategies.base_strategy import BaseStrategy
 from ml.predictor import MLPredictor
+
+logger = logging.getLogger(__name__)
 
 
 class MLStrategy(BaseStrategy):
@@ -51,6 +54,14 @@ class MLStrategy(BaseStrategy):
             result = self.predictor.predict(data, self.symbol, self.model_type)
             return result["signal"]
         except FileNotFoundError:
+            logger.warning(
+                "No saved model for %s/%s — returning HOLD",
+                self.symbol, self.model_type,
+            )
             return "HOLD"
         except Exception:
+            logger.exception(
+                "Unexpected error during ML prediction for %s/%s",
+                self.symbol, self.model_type,
+            )
             return "HOLD"

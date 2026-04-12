@@ -867,11 +867,11 @@
 
       // Metrics pills
       const metrics = [
-        {label: 'Accuracy',  value: (data.accuracy  * 100).toFixed(1) + '%'},
-        {label: 'Precision', value: (data.precision * 100).toFixed(1) + '%'},
-        {label: 'Recall',    value: (data.recall    * 100).toFixed(1) + '%'},
-        {label: 'F1',        value: (data.f1        * 100).toFixed(1) + '%'},
-        {label: 'ROC-AUC',   value: (data.roc_auc   * 100).toFixed(1) + '%'},
+        {label: 'Accuracy',  value: ((data.accuracy  ?? 0) * 100).toFixed(1) + '%'},
+        {label: 'Precision', value: ((data.precision ?? 0) * 100).toFixed(1) + '%'},
+        {label: 'Recall',    value: ((data.recall    ?? 0) * 100).toFixed(1) + '%'},
+        {label: 'F1',        value: ((data.f1        ?? 0) * 100).toFixed(1) + '%'},
+        {label: 'ROC-AUC',   value: ((data.roc_auc   ?? 0) * 100).toFixed(1) + '%'},
       ];
       document.getElementById('train-metrics-grid').innerHTML = metrics.map(m =>
         `<div class="ml-metric-pill">
@@ -1043,8 +1043,9 @@
 
       const signal = data.signal;
       const conf = (data.confidence * 100).toFixed(1);
-      const buyP = (data.probabilities.BUY * 100).toFixed(1);
-      const sellP = (data.probabilities.SELL * 100).toFixed(1);
+      const probs = data.probabilities || {BUY: 0.5, SELL: 0.5};
+      const buyP = ((probs.BUY ?? 0.5) * 100).toFixed(1);
+      const sellP = ((probs.SELL ?? 0.5) * 100).toFixed(1);
 
       const badge = document.getElementById('signal-badge');
       badge.className = 'signal-badge ' +

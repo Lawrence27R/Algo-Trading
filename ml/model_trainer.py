@@ -8,6 +8,7 @@ persistence via joblib.
 
 import json
 import os
+import re
 
 import joblib
 import numpy as np
@@ -26,6 +27,23 @@ from ml.feature_engineering import FeatureEngineer
 
 SAVED_MODELS_DIR = os.path.join(os.path.dirname(__file__), "saved_models")
 
+# Only allow alphanumeric characters, hyphens, underscores and dots in
+# symbol / model_type to prevent path traversal or injection attacks.
+_SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9._\-]{1,64}$")
+
+
+def _sanitize_name(value: str, field: str = "value") -> str:
+    """Validate that *value* is safe to embed in a file path.
+
+    Raises ``ValueError`` if the value contains unexpected characters.
+    """
+    if not _SAFE_NAME_RE.match(value):
+        raise ValueError(
+            f"Invalid {field} {value!r}: only alphanumeric characters, "
+            "dots, hyphens, and underscores are allowed (max 64 chars)."
+        )
+    return value
+
 
 class ModelTrainer:
     """Trains, evaluates, and persists ML classification models."""
@@ -42,8 +60,8 @@ class ModelTrainer:
         hyperparams : dict, optional
             Hyperparameters forwarded to the underlying estimator.
         """
-        self.symbol = symbol
-        self.model_type = model_type
+        self.symbol = _sanitize_name(symbol, "symbol")
+        self.model_type = _sanitize_name(model_type, "model_type")
         self.hyperparams = hyperparams or {}
         self.fe = FeatureEngineer()
         os.makedirs(SAVED_MODELS_DIR, exist_ok=True)
@@ -53,13 +71,13 @@ class ModelTrainer:
     # ------------------------------------------------------------------
 
     def _model_path(self, symbol=None, model_type=None):
-        s = symbol or self.symbol
-        m = model_type or self.model_type
+        s = _sanitize_name(symbol or self.symbol, "symbol")
+        m = _sanitize_name(model_type or self.model_type, "model_type")
         return os.path.join(SAVED_MODELS_DIR, f"{s}_{m}.pkl")
 
     def _metrics_path(self, symbol=None, model_type=None):
-        s = symbol or self.symbol
-        m = model_type or self.model_type
+        s = _sanitize_name(symbol or self.symbol, "symbol")
+        m = _sanitize_name(model_type or self.model_type, "model_type")
         return os.path.join(SAVED_MODELS_DIR, f"{s}_{m}_metrics.json")
 
     def _build_estimator(self):
@@ -172,14 +190,19 @@ class ModelTrainer:
             Keys: ``model``, ``scaler``, ``feature_cols``.
         """
         path = self._model_path(symbol, model_type)
-        if not os.path.exists(path):
-            s = symbol or self.symbol
-            m = model_type or self.model_type
+        # Confirm the resolved path stays within SAVED_MODELS_DIR
+        real_dir = os.path.realpath(SAVED_MODELS_DIR)
+        real_path = os.path.realpath(path)
+        if not real_path.startswith(real_dir + os.sep):
+            raise ValueError("Resolved model path is outside the saved_models directory.")
+        if not os.path.exists(real_path):
+            s = _sanitize_name(symbol or self.symbol, "symbol")
+            m = _sanitize_name(model_type or self.model_type, "model_type")
             raise FileNotFoundError(
-                f"No saved model found for {s}/{m} at {path}. "
+                f"No saved model found for {s}/{m}. "
                 "Train a model first."
             )
-        return joblib.load(path)
+        return joblib.load(real_path)
 
     def get_feature_importance(self, symbol: str | None = None,
                                model_type: str | None = None) -> dict:
