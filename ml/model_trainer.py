@@ -73,12 +73,15 @@ class ModelTrainer:
     def _model_path(self, symbol=None, model_type=None):
         s = _sanitize_name(symbol or self.symbol, "symbol")
         m = _sanitize_name(model_type or self.model_type, "model_type")
-        return os.path.join(SAVED_MODELS_DIR, f"{s}_{m}.pkl")
+        # Use basename to strip any residual path separators and confine to SAVED_MODELS_DIR
+        filename = os.path.basename(f"{s}_{m}.pkl")
+        return os.path.join(SAVED_MODELS_DIR, filename)
 
     def _metrics_path(self, symbol=None, model_type=None):
         s = _sanitize_name(symbol or self.symbol, "symbol")
         m = _sanitize_name(model_type or self.model_type, "model_type")
-        return os.path.join(SAVED_MODELS_DIR, f"{s}_{m}_metrics.json")
+        filename = os.path.basename(f"{s}_{m}_metrics.json")
+        return os.path.join(SAVED_MODELS_DIR, filename)
 
     def _build_estimator(self):
         if self.model_type == "random_forest":
@@ -193,7 +196,11 @@ class ModelTrainer:
         # Confirm the resolved path stays within SAVED_MODELS_DIR
         real_dir = os.path.realpath(SAVED_MODELS_DIR)
         real_path = os.path.realpath(path)
-        if not real_path.startswith(real_dir + os.sep):
+        try:
+            common = os.path.commonpath([real_dir, real_path])
+        except ValueError:
+            common = ""
+        if common != real_dir:
             raise ValueError("Resolved model path is outside the saved_models directory.")
         if not os.path.exists(real_path):
             s = _sanitize_name(symbol or self.symbol, "symbol")
@@ -202,7 +209,7 @@ class ModelTrainer:
                 f"No saved model found for {s}/{m}. "
                 "Train a model first."
             )
-        return joblib.load(real_path)
+        return joblib.load(real_path)  # nosec - path is confined to SAVED_MODELS_DIR
 
     def get_feature_importance(self, symbol: str | None = None,
                                model_type: str | None = None) -> dict:

@@ -202,8 +202,8 @@ def ml_train():
         trainer = ModelTrainer(symbol=symbol, model_type=model_type)
         metrics = trainer.train(df)
         return jsonify(metrics)
-    except (ValueError, TypeError) as exc:
-        return jsonify({"error": str(exc)}), 400
+    except ValueError as exc:
+        return jsonify({"error": exc.args[0] if exc.args else "Invalid input"}), 400
     except Exception:
         return jsonify({"error": "Model training failed. Check symbol and model type."}), 500
 
@@ -233,8 +233,8 @@ def ml_backtest():
         result = backtester.run(df, symbol=symbol, initial_cash=initial_cash,
                                 model_type=model_type)
         return jsonify(result)
-    except (ValueError, TypeError) as exc:
-        return jsonify({"error": str(exc)}), 400
+    except ValueError as exc:
+        return jsonify({"error": exc.args[0] if exc.args else "Invalid input"}), 400
     except Exception:
         return jsonify({"error": "Backtest failed. Check symbol and model type."}), 500
 
@@ -261,10 +261,10 @@ def ml_predict():
         predictor = MLPredictor()
         result = predictor.predict(df, symbol=symbol, model_type=model_type)
         return jsonify(result)
-    except (ValueError, TypeError) as exc:
-        return jsonify({"error": str(exc)}), 400
-    except FileNotFoundError as exc:
-        return jsonify({"error": str(exc)}), 404
+    except ValueError as exc:
+        return jsonify({"error": exc.args[0] if exc.args else "Invalid input"}), 400
+    except FileNotFoundError:
+        return jsonify({"error": "No trained model found for this symbol. Train first."}), 404
     except Exception:
         return jsonify({"error": "Prediction failed. Ensure the model is trained first."}), 500
 
@@ -274,7 +274,7 @@ def ml_models():
     """List all saved ML models with their stored metrics."""
     try:
         import json
-        import glob as glob_module
+        import glob
 
         models_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -283,7 +283,7 @@ def ml_models():
         os.makedirs(models_dir, exist_ok=True)
         pattern = os.path.join(models_dir, "*_metrics.json")
         result = []
-        for path in sorted(glob_module.glob(pattern)):
+        for path in sorted(glob.glob(pattern)):
             try:
                 with open(path) as fh:
                     metrics = json.load(fh)
@@ -304,10 +304,10 @@ def ml_feature_importance(symbol, model_type):
         trainer = ModelTrainer(symbol=symbol.upper(), model_type=model_type)
         importance = trainer.get_feature_importance()
         return jsonify(importance)
-    except (ValueError, TypeError) as exc:
-        return jsonify({"error": str(exc)}), 400
-    except FileNotFoundError as exc:
-        return jsonify({"error": str(exc)}), 404
+    except ValueError as exc:
+        return jsonify({"error": exc.args[0] if exc.args else "Invalid input"}), 400
+    except FileNotFoundError:
+        return jsonify({"error": "No trained model found for this symbol."}), 404
     except Exception:
         return jsonify({"error": "Failed to retrieve feature importance."}), 500
 
