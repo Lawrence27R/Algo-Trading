@@ -1,0 +1,29 @@
+{
+  "accuracy": 0.4255,
+  "precision": 0.3529,
+  "recall": 0.7059,
+  "f1": 0.4706,
+  "roc_auc": 0.5235,
+  "train_size": 184,
+  "test_size": 47,
+  "trained_at": "2026-04-12T17:05:11.745848+00:00",
+  "symbol": "TEST_wf_100",
+  "model_type": "random_forest",
+  "feature_importance": {
+    "rsi": 0.079463,
+    "macd_line": 0.056541,
+    "macd_signal": 0.055203,
+    "macd_hist": 0.06115,
+    "bb_width": 0.071498,
+    "bb_pct_b": 0.065377,
+    "ema_9": 0.055072,
+    "ema_21": 0.052659,
+    "ema_50": 0.053366,
+    "volume_ratio": 0.079169,
+    "return_1d": 0.087967,
+    "return_5d": 0.060903,
+    "hl_range": 0.077646,
+    "atr": 0.071385,
+    "volatility": 0.072602
+  }
+}
